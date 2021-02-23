@@ -94,7 +94,7 @@ exports.signin = (req, res) => {
         return res.render('404');
       }
 
-      var token = jwt.sign({ id: login.id }, config.secret, {
+      var token = jwt.sign({ id: login.id, username: login.id }, config.secret, {
         expiresIn: 86400 // 24 hours
       });
 

@@ -11,14 +11,56 @@ const blockchainController = require('./controllers/blockchainController');
 const responseController = require('./controllers/responseController');
 const { verifySignUp } = require("./middlewares");
 const logincontroller = require("./controllers/auth.controller");
-const {enrollAdmin} = require('./controllers/blockchainController')
+const { enrollAdmin } = require('./controllers/blockchainController')
 const dotenv = require('dotenv');
+
+const expressJWT = require('express-jwt');
+const jwt = require('jsonwebtoken');
+const bearerToken = require('express-bearer-token');
+
 dotenv.config();
 
 const cors = require("cors");
 var corsOptions = {
-    origin: "http://localhost:8081"
-  };
+  origin: "http://localhost:8081"
+};
+
+enrollAdmin();
+
+app.set('secret', 'MinorBMR');
+app.use(expressJWT({
+  secret: 'MinorBMR'
+}).unless({
+  path: ['/signup', '/signin']
+}));
+app.use(bearerToken());
+
+app.use(function (req, res, next) {
+  if (req.originalUrl.indexOf('/signin') >= 0) {
+    return next();
+  }
+
+  if (req.originalUrl.indexOf('/signup') >= 0) {
+    return next();
+  }
+
+  var token = req.token;
+  jwt.verify(token, app.get('secret'), function (err, decoded) {
+    if (err) {
+      res.send({
+        success: false,
+        message: 'Failed to authenticate token. Make sure to include the ' +
+          'token returned from /signin call in the authorization header ' +
+          ' as a Bearer token'
+      });
+      return;
+    } else {
+      req.body.userId = decoded.username;
+      return next();
+    }
+  });
+});
+
 
 
 // require("./db/conn");
@@ -36,46 +78,46 @@ app.set('views', './views')
 app.set('view engine', 'ejs')
 
 //Db connection start
-mongoose.Promise =global.Promise;
-mongoose.connect('mongodb://localhost:27017/test',{useNewUrlParser:true})
-.then(()=> console.log('connection sucessful'))
-.catch((err) => console.log('connection failed'))
+mongoose.Promise = global.Promise;
+mongoose.connect('mongodb://localhost:27017/test', { useNewUrlParser: true })
+  .then(() => console.log('connection sucessful'))
+  .catch((err) => console.log('connection failed'))
 
 function initial() {
-    Role.estimatedDocumentCount((err, count) => {
-      if (!err && count === 0) {
-        new Role({
-          name: "patient"
-        }).save(err => {
-          if (err) {
-            console.log("error", err);
-          }
-  
-          console.log("added 'patient' to roles collection");
-        });
-  
-        new Role({
-          name: "doctor"
-        }).save(err => {
-          if (err) {
-            console.log("doctor", err);
-          }
-  
-          console.log("added 'doctor' to roles collection");
-        });
-  
-        new Role({
-          name: "admin"
-        }).save(err => {
-          if (err) {
-            console.log("error", err);
-          }
-  
-          console.log("added 'admin' to roles collection");
-        });
-      }
-    });
-  }
+  Role.estimatedDocumentCount((err, count) => {
+    if (!err && count === 0) {
+      new Role({
+        name: "patient"
+      }).save(err => {
+        if (err) {
+          console.log("error", err);
+        }
+
+        console.log("added 'patient' to roles collection");
+      });
+
+      new Role({
+        name: "doctor"
+      }).save(err => {
+        if (err) {
+          console.log("doctor", err);
+        }
+
+        console.log("added 'doctor' to roles collection");
+      });
+
+      new Role({
+        name: "admin"
+      }).save(err => {
+        if (err) {
+          console.log("error", err);
+        }
+
+        console.log("added 'admin' to roles collection");
+      });
+    }
+  });
+}
 
 // module.exports = function(app) {
 //     app.use(function(req, res, next) {
@@ -86,19 +128,17 @@ function initial() {
 //       next();
 //     });
 app.post('/signup',
-[
-  verifySignUp.checkDuplicateUsernameOrEmail,
-  verifySignUp.checkRolesExisted
-],
-//blockchainController.enrollAdmin,
-blockchainController.registerAndEnrollUser,
-responseController.ca,
-logincontroller.signup); 
-    
-enrollAdmin();      
-      
+  [
+    verifySignUp.checkDuplicateUsernameOrEmail,
+    verifySignUp.checkRolesExisted
+  ],
+  //blockchainController.enrollAdmin,
+  blockchainController.registerAndEnrollUser,
+  responseController.ca,
+  logincontroller.signup);
 
-app.post("/signin/", logincontroller.signin);
+
+app.post("/signin", logincontroller.signin);
 
 // app.post("/signin",(req,res)=>{
 //     res.render('home')
@@ -106,34 +146,34 @@ app.post("/signin/", logincontroller.signin);
 // };
 
 app.get('/', (req, res) => {
-    res.render('index')
+  res.render('index')
 })
 
 app.get('/home', (req, res) => {
-    res.render('home')
+  res.render('home')
 })
 
 app.get('/about', (req, res) => {
-    res.render('about-us')
+  res.render('about-us')
 })
 
 app.get('/tracking', (req, res) => {
-    res.render('tracking')
+  res.render('tracking')
 })
 
 app.get('/contact', (req, res) => {
-    res.render('contact-us')
-    req.session.destroy()
+  res.render('contact-us')
+  req.session.destroy()
 })
 
 app.get('/doctor_details', (req, res) => {
-    res.render('doctor_details')
+  res.render('doctor_details')
 })
 
 app.get('/quote', (req, res) => {
-    res.render('quote',{
-        data:{}
-    })
+  res.render('quote', {
+    data: {}
+  })
 })
 
 // app.post('/quote', function(req, res){
@@ -155,12 +195,12 @@ app.get('/quote', (req, res) => {
 //         console.log("user saved",user)
 
 //     })
-    
+
 // })
 
-app.post('/quote',ReportController.createMr,
-blockchainController.invokeChaincode,
-responseController.user)
+app.post('/quote', ReportController.createMr,
+  blockchainController.invokeChaincode,
+  responseController.user)
 
 
 //searching
