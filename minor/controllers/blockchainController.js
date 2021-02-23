@@ -4,7 +4,6 @@ const { Gateway, Wallets } = require('fabric-network');
 const FabricCAServices = require('fabric-ca-client');
 const fs = require('fs');
 const path = require('path');
-
 const walletPath = path.join(__dirname, '..', 'wallet');
 
 /**
@@ -16,7 +15,10 @@ const buildCAClient = (FabricCAServices, ccp, caHostName) => {
     // Create a new CA client for interacting with the CA.
     const caInfo = ccp.certificateAuthorities[caHostName]; //lookup CA details from config
     const caTLSCACerts = caInfo.tlsCACerts.pem;
-    const caClient = new FabricCAServices(caInfo.url, { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
+    console.log("caInfo.url",caInfo.url)
+    console.log("caName",caInfo.caName)
+    console.log("caT",caTLSCACerts)
+    const caClient = new FabricCAServices("https://localhost:7054", { trustedRoots: caTLSCACerts, verify: false }, caInfo.caName);
 
     console.log(`Built a CA Client named ${caInfo.caName}`);
     return caClient;
@@ -25,6 +27,7 @@ const buildCAClient = (FabricCAServices, ccp, caHostName) => {
 const buildCCP = () => {
     // load the common connection configuration file
     const ccpPath = path.resolve(__dirname, '..', '..', 'hosp-network', 'organizations', 'peerOrganizations', `${process.env.ORGANIZATION}.example.com`, `connection-${process.env.ORGANIZATION}.json`);
+    console.log("ccppath",ccpPath)
     const fileExists = fs.existsSync(ccpPath);
     if (!fileExists) {
         throw new Error(`no such file or directory: ${ccpPath}`);
@@ -33,8 +36,7 @@ const buildCCP = () => {
 
     // build a JSON object from the file contents
     const ccp = JSON.parse(contents);
-    // const contract = network.getContract('reporting');
-    // const result = awit 
+    console.log("cpp",ccp)
 
     console.log(`Loaded the network configuration located at ${ccpPath}`);
     return ccp;
@@ -69,7 +71,8 @@ const enrollAdmin = async () => {
             console.log('An identity for the admin user already exists in the wallet');
             throw new Error('An identity for the admin user already exists in the wallet');
         }
-
+        console.log("process.env.ADMIN_USERID1",process.env.ADMIN_USERID)
+        console.log("process.env.ADMIN_USERPW",process.env.ADMIN_USERPW)
         const enrollment = await caClient.enroll({ enrollmentID: process.env.ADMIN_USERID, enrollmentSecret: process.env.ADMIN_USERPW });
         const x509Identity = {
             credentials: {
@@ -79,8 +82,10 @@ const enrollAdmin = async () => {
             mspId: process.env.MSPID,
             type: 'X.509',
         };
+        console.log("process.env.ADMIN_USERID",process.env.ADMIN_USERID)
         await wallet.put(process.env.ADMIN_USERID, x509Identity);
-    } catch (error) {
+        console.log("process.env.ADMIN_USERID1",process.env.ADMIN_USERID)
+      } catch (error) {
         console.error(`Failed to enroll admin user : ${error}`);
         throw new Error(`Failed to enroll admin user : ${error}`);
     }
@@ -88,16 +93,17 @@ const enrollAdmin = async () => {
 
 const registerAndEnrollUser = async (req, _res, next) => {
     try {
+        console.log("body",JSON.stringify(req.body))
 
-        const { userId } = req.body;
+        const { email } = req.body;
 
         const ccp = buildCCP();
         const caClient = buildCAClient(FabricCAServices, ccp, `ca_${process.env.ORGANIZATION}`);
         const wallet = await buildWallet(Wallets, walletPath);
 
-        const userIdentity = await wallet.get(userId);
+        const userIdentity = await wallet.get(email);
         if (userIdentity) {
-            throw new Error(`An identity for the user ${userId} already exists in the wallet`);
+            throw new Error(`An identity for the user ${email} already exists in the wallet`);
         }
 
         const adminIdentity = await wallet.get(process.env.ADMIN_USERID);
@@ -108,14 +114,14 @@ const registerAndEnrollUser = async (req, _res, next) => {
         }
         const provider = wallet.getProviderRegistry().getProvider(adminIdentity.type);
         const adminUser = await provider.getUserContext(adminIdentity, process.env.ADMIN_USERID);
-
+  
         const secret = await caClient.register({
             affiliation: process.env.AFFILIATION,
-            enrollmentID: userId,
+            enrollmentID: email,
             role: 'client'
         }, adminUser);
         const enrollment = await caClient.enroll({
-            enrollmentID: userId,
+            enrollmentID: email,
             enrollmentSecret: secret
         });
         const x509Identity = {
@@ -126,7 +132,7 @@ const registerAndEnrollUser = async (req, _res, next) => {
             mspId: process.env.MSPID,
             type: 'X.509',
         };
-        await wallet.put(userId, x509Identity);
+        await wallet.put(email, x509Identity);
         req.ca = x509Identity;
 
         return next();

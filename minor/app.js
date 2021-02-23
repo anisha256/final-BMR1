@@ -3,10 +3,10 @@ const http = require('http');
 const express = require('express')
 const app = express()
 const path = require("path");
-const port = process.env.PORT || 3000;
+
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
-const ReportController = require('./controllers/ReportController');
+const reportController = require('./controllers/reportController');
 const blockchainController = require('./controllers/blockchainController');
 const responseController = require('./controllers/responseController');
 const { verifySignUp } = require("./middlewares");
@@ -14,6 +14,8 @@ const logincontroller = require("./controllers/auth.controller");
 const {enrollAdmin} = require('./controllers/blockchainController')
 const dotenv = require('dotenv');
 dotenv.config();
+
+const port = process.env.PORT || 3000;
 
 const cors = require("cors");
 var corsOptions = {
@@ -41,6 +43,8 @@ mongoose.connect('mongodb://localhost:27017/test',{useNewUrlParser:true})
 .then(()=> console.log('connection sucessful'))
 .catch((err) => console.log('connection failed'))
 
+
+enrollAdmin();  
 function initial() {
     Role.estimatedDocumentCount((err, count) => {
       if (!err && count === 0) {
@@ -95,7 +99,7 @@ blockchainController.registerAndEnrollUser,
 responseController.ca,
 logincontroller.signup); 
     
-enrollAdmin();      
+    
       
 
 app.post("/signin/", logincontroller.signin);
@@ -158,7 +162,7 @@ app.get('/quote', (req, res) => {
     
 // })
 
-app.post('/quote',ReportController.createMr,
+app.post('/quote',reportController.createMr,
 blockchainController.invokeChaincode,
 responseController.user)
 

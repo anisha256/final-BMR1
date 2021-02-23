@@ -97,7 +97,7 @@ func (s *SmartContract) ReadReport(ctx contractapi.TransactionContextInterface, 
 
 // ReadReportFromUser returns the report stored in the world state sent by users
 func (s *SmartContract) ReadReportFromUser(ctx contractapi.TransactionContextInterface, DoctorName string) ([]*Report, error) {
-	queryString := fmt.Sprintf("{\"selector\":{\"from\":\"%s\"}}", DoctorName)
+	queryString := fmt.Sprintf("{\"selector\":{\"doctorName\":\"%s\"}}", DoctorName)
 
 	resultsIterator, err := ctx.GetStub().GetQueryResult(queryString)
 	if err != nil {
@@ -153,8 +153,8 @@ func (s *SmartContract) UpdateReport(ctx contractapi.TransactionContextInterface
 	return ctx.GetStub().PutState(id, reportJSON)
 }
 
-// Deletereport deletes an given reportDoctorName the world state.
-func (s *SmartContract) Deletereport(ctx contractapi.TransactionContextInterface, id string) error {
+// DeleteReport deletes an given reportDoctorName the world state.
+func (s *SmartContract) DeleteReport(ctx contractapi.TransactionContextInterface, id string) error {
 	exists, err := s.ReportExists(ctx, id)
 	if err != nil {
 		return err
