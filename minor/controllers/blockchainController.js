@@ -6,6 +6,12 @@ const fs = require('fs');
 const path = require('path');
 const walletPath = path.join(__dirname, '..', 'wallet');
 
+const db =require("../models");
+const Login = db.login;
+var jwt = require("jsonwebtoken");
+var bcrypt = require("bcryptjs");
+const { getMaxListeners } = require('../models/role.model');
+
 /**
  *
  * @param {*} FabricCAServices
@@ -132,18 +138,41 @@ const registerAndEnrollUser = async (req, _res, next) => {
             mspId: process.env.MSPID,
             type: 'X.509',
         };
+        
         await wallet.put(email, x509Identity);
         req.ca = x509Identity;
-
+        const login = new Login({
+            //username: req.body.username,
+            email: req.body.email,
+            password: bcrypt.hashSync(req.body.password, 8)
+          });
+          login
+          .save()
+          .then(result => {
+            console.log(result);
+            res.status(201).json({
+              message:'User created'
+            })
+          })
+          .catch(err =>{
+            console.log(err);
+            res.status(500).json({
+              message:'error'
+            })
+          })
         return next();
+        
+
     } catch (error) {
         console.error(`Failed to register user : ${error}`);
         next(error);
     }
+  
 };
 
 const invokeChaincode = async (req, _res, next) => {
     try {
+        
         const funcName = req.blockchainFunc;
         const ccp = buildCCP();
         const wallet = await buildWallet(Wallets, walletPath);
@@ -152,27 +181,24 @@ const invokeChaincode = async (req, _res, next) => {
         try {
             await gateway.connect(ccp, {
                 wallet,
-                identity: req.headers.user,
+                identity: 'yeti@gmail.com',
                 discovery: { enabled: true, asLocalhost: false }
             });
+           
+            
             const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
             const contract = network.getContract(process.env.CHAINCODE_NAME);
 
             await contract.submitTransaction(funcName,
-                // req.account._id,
-                // req.account.from,
-                // req.account.to,
-                // req.account.amount,
-                // req.account.paid,
-                // req.account.timestamp);
+              
             req.user._id,
             req.user.patient_name,
             req.user.doctors_name,
             req.user.weight,
             req.user.height,
             req.user.description);
-            const result = await contract.evaluateTransaction(funcName, req.user._id);
-            req.blockchain = prettyJSONString(result.toString());
+            // const result = await contract.evaluateTransaction(funcName, req.login._id);
+            // req.blockchain = prettyJSONString(result.toString());
 
             return next();
         } finally {
@@ -193,7 +219,7 @@ const queryChaincode = async (req, _res, next) => {
         try {
             await gateway.connect(ccp, {
                 wallet,
-                identity: req.headers.user,
+                identity: 'admin',
                 discovery: { enabled: true, asLocalhost: false }
             });
             const network = await gateway.getNetwork(process.env.CHANNEL_NAME);

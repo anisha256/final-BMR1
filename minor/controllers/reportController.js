@@ -6,7 +6,8 @@ exports.createMr = async (req, _res, next) => {
 
 		req.user = await User.create({
 			type: 'Mr',
-			doctorName: process.env.MSPID,
+			doctorName : process.env.MSPID,
+			//doctorName:doctorName,
 			patientName: patientName,
 			hospitalName: hospitalName,
 			height: height,

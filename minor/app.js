@@ -94,20 +94,18 @@ app.post('/signup',
   verifySignUp.checkDuplicateUsernameOrEmail,
   verifySignUp.checkRolesExisted
 ],
-//blockchainController.enrollAdmin,
+
+//logincontroller.signup,
 blockchainController.registerAndEnrollUser,
-responseController.ca,
-logincontroller.signup); 
+responseController.ca); 
     
     
       
 
-app.post("/signin/", logincontroller.signin);
 
-// app.post("/signin",(req,res)=>{
-//     res.render('home')
-// })
-// };
+app.post("/signin", logincontroller.signin
+);
+ 
 
 app.get('/', (req, res) => {
     res.render('index')

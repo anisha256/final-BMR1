@@ -3,7 +3,7 @@ const mongoose= require('mongoose');
 const Login = mongoose.model(
     "Login",
     new mongoose.Schema({
-        username: String,
+        //username: String,
         email: String,
         password: String,
         roles: [
